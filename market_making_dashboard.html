@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Risk-Aware RL Market Making Dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a18; padding: 2rem; }
+.dash { max-width: 860px; margin: 0 auto; }
+.hero-title { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+.hero-sub { font-size: 13px; color: #5f5e5a; margin-bottom: 1.5rem; line-height: 1.5; }
+.section-label { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; color: #888780; text-transform: uppercase; margin-bottom: 0.75rem; }
+.metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+.metric { background: #ebebeb; border-radius: 8px; padding: 0.875rem 1rem; }
+.metric-label { font-size: 12px; color: #5f5e5a; margin-bottom: 4px; }
+.metric-value { font-size: 22px; font-weight: 500; }
+.metric-sub { font-size: 12px; color: #888780; margin-top: 2px; }
+.card { background: #fff; border: 0.5px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; }
+.card-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+.card-sub { font-size: 12px; color: #5f5e5a; margin-bottom: 1rem; }
+.badge { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 8px; font-weight: 500; }
+.badge-sac { background: #E6F1FB; color: #0C447C; }
+.badge-fixed { background: #FAEEDA; color: #633806; }
+.badge-skew { background: #EAF3DE; color: #27500A; }
+.legend-row { display: flex; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #5f5e5a; }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+.insight-box { border-left: 3px solid; border-radius: 0 8px 8px 0; padding: 0.75rem 1rem; margin-top: 1rem; font-size: 13px; color: #5f5e5a; line-height: 1.5; background: #f5f5f3; }
+.insight-box.blue { border-color: #378ADD; }
+.insight-box.amber { border-color: #BA7517; }
+.insight-box.teal { border-color: #1D9E75; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+.tox-selector { display: flex; gap: 8px; margin-bottom: 1.25rem; }
+.tox-btn { flex: 1; padding: 8px; text-align: center; border-radius: 8px; border: 0.5px solid rgba(0,0,0,0.2); font-size: 12px; font-weight: 500; cursor: pointer; background: #fff; color: #5f5e5a; }
+.tox-btn.active-light { background: #EAF3DE; color: #3B6D11; border-color: #639922; }
+.tox-btn.active-med { background: #FAEEDA; color: #854F0B; border-color: #BA7517; }
+.tox-btn.active-strong { background: #FCEBEB; color: #A32D2D; border-color: #E24B4A; }
+.cvar-bar-wrap { margin-bottom: 12px; }
+.cvar-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; color: #5f5e5a; }
+.cvar-track { height: 20px; background: #ebebeb; border-radius: 4px; overflow: hidden; position: relative; }
+.cvar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding: 0 8px; font-size: 11px; font-weight: 500; transition: width 0.4s ease; }
+.cvar-zero { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(0,0,0,0.3); }
+.inv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.inv-card { border: 0.5px solid rgba(0,0,0,0.12); border-radius: 8px; padding: 0.75rem; text-align: center; }
+.inv-num { font-size: 26px; font-weight: 500; margin: 6px 0 2px; }
+.inv-label { font-size: 11px; color: #888780; }
+.key-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.key-item { border: 0.5px solid rgba(0,0,0,0.12); border-radius: 8px; padding: 0.875rem; }
+.key-icon { font-size: 20px; margin-bottom: 6px; }
+.key-label { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+.key-desc { font-size: 12px; color: #5f5e5a; }
+@media (max-width: 560px) { .two-col { grid-template-columns: 1fr; } .metric-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="dash">
+  <div class="hero-title">Risk-Aware RL for Market Making</div>
+  <div class="hero-sub">How does a Soft Actor-Critic (SAC) agent compare to classical strategies under adverse selection? Explore the key findings interactively.</div>
+
+  <div class="section-label">Baseline performance (standard conditions)</div>
+  <div class="metric-grid">
+    <div class="metric">
+      <div class="metric-label">SAC mean PnL <span class="badge badge-sac">RL</span></div>
+      <div class="metric-value" style="color:#185FA5;">+$6,635</div>
+      <div class="metric-sub">Std dev: $4,856</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">FIXED mean PnL <span class="badge badge-fixed">baseline</span></div>
+      <div class="metric-value" style="color:#BA7517;">+$5,033</div>
+      <div class="metric-sub">Std dev: $3,049</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">SKEW mean PnL <span class="badge badge-skew">baseline</span></div>
+      <div class="metric-value" style="color:#3B6D11;">+$8,988</div>
+      <div class="metric-sub">Std dev: $6,192</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Mean PnL comparison across strategies</div>
+    <div class="card-sub">SKEW leads in raw profitability under benign conditions — but risk tells a different story.</div>
+    <div class="legend-row">
+      <span class="legend-item"><span class="legend-dot" style="background:#378ADD;"></span>SAC</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#BA7517;"></span>FIXED</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#639922;"></span>SKEW</span>
+    </div>
+    <div style="position: relative; width: 100%; height: 220px;">
+      <canvas id="pnlChart" role="img" aria-label="Bar chart comparing mean PnL across SAC, FIXED, and SKEW. SKEW leads at $8988, SAC at $6635, FIXED at $5033.">SAC: $6635, FIXED: $5033, SKEW: $8988.</canvas>
+    </div>
+    <div class="insight-box blue">SKEW appears best in average PnL — but its high variability and tail exposure make it risky when market conditions turn adversarial.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Inventory exposure — the hidden risk</div>
+    <div class="card-sub">SAC significantly reduces inventory range, indicating a more conservative, risk-aware policy.</div>
+    <div class="inv-grid">
+      <div class="inv-card">
+        <div class="inv-label">SAC</div>
+        <div class="inv-num" style="color:#185FA5;">7.9</div>
+        <div class="inv-label">avg inventory range</div>
+      </div>
+      <div class="inv-card">
+        <div class="inv-label">FIXED</div>
+        <div class="inv-num" style="color:#BA7517;">14.2</div>
+        <div class="inv-label">avg inventory range</div>
+      </div>
+      <div class="inv-card">
+        <div class="inv-label">SKEW</div>
+        <div class="inv-num" style="color:#639922;">12.1</div>
+        <div class="inv-label">avg inventory range</div>
+      </div>
+    </div>
+    <div style="position: relative; width: 100%; height: 160px; margin-top: 1rem;">
+      <canvas id="invChart" role="img" aria-label="Horizontal bar chart of inventory range. SAC: 7.9, FIXED: 14.2, SKEW: 12.1.">SAC has the lowest inventory range at 7.9, FIXED at 14.2, SKEW at 12.1.</canvas>
+    </div>
+    <div class="insight-box teal">SAC's inventory range is 44% lower than FIXED and 35% lower than SKEW. The RL agent learns to avoid large positional bets without any hard constraints.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Tail-risk stress test — CVaR (10%)</div>
+    <div class="card-sub">Select a toxicity level to see how each strategy performs in the worst 10% of scenarios.</div>
+    <div class="tox-selector">
+      <div class="tox-btn active-light" id="btn-light" onclick="setTox('light')">🌿 Light</div>
+      <div class="tox-btn" id="btn-med" onclick="setTox('med')">🔥 Medium</div>
+      <div class="tox-btn" id="btn-strong" onclick="setTox('strong')">⚡ Strong</div>
+    </div>
+    <div id="tox-insight" class="insight-box blue" style="margin-bottom: 1rem; font-size: 12px;"></div>
+    <div id="cvar-bars"></div>
+  </div>
+
+  <div class="two-col">
+    <div class="card" style="margin-bottom: 0;">
+      <div class="card-title">Reward scaling failure</div>
+      <div class="card-sub">Without normalization, SAC collapses to a degenerate policy.</div>
+      <div style="position:relative; width:100%; height:180px;">
+        <canvas id="rewardChart" role="img" aria-label="Line chart showing policy quality over training. Degenerates without reward scaling, improves steadily with it.">Without reward scaling: degenerate. With reward scaling: stable improvement.</canvas>
+      </div>
+      <div class="insight-box amber" style="font-size: 12px;">Entropy regularization alone does not prevent collapse — reward normalization is essential.</div>
+    </div>
+    <div class="card" style="margin-bottom: 0;">
+      <div class="card-title">SAC CVaR dominance under stress</div>
+      <div class="card-sub">Tail risk across all toxicity regimes.</div>
+      <div style="position:relative; width:100%; height:180px;">
+        <canvas id="cvarLineChart" role="img" aria-label="Line chart of CVaR for SAC, FIXED, SKEW across light, medium, strong toxicity. SAC stays positive throughout.">SAC CVaR positive throughout. FIXED and SKEW go negative under higher toxicity.</canvas>
+      </div>
+      <div class="insight-box teal" style="font-size: 12px;">SAC is the only strategy that maintains positive CVaR under all tested conditions.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 1.25rem;">
+    <div class="card-title">Key takeaways</div>
+    <div class="card-sub" style="margin-bottom: 1rem;">What does this research tell us about RL in market making?</div>
+    <div class="key-grid">
+      <div class="key-item">
+        <div class="key-icon" style="color:#185FA5;">🛡</div>
+        <div class="key-label">Tail-risk champion</div>
+        <div class="key-desc">SAC achieves superior CVaR under stress, protecting against catastrophic losses.</div>
+      </div>
+      <div class="key-item">
+        <div class="key-icon" style="color:#BA7517;">⚙️</div>
+        <div class="key-label">Reward scaling is critical</div>
+        <div class="key-desc">Without normalization, RL agents exploit simulator artifacts, not market dynamics.</div>
+      </div>
+      <div class="key-item">
+        <div class="key-icon" style="color:#1D9E75;">📊</div>
+        <div class="key-label">Not a PnL maximizer</div>
+        <div class="key-desc">RL's edge is adaptive risk management, not beating heuristics on average returns.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const gridColor = 'rgba(0,0,0,0.06)';
+const tickColor = 'rgba(0,0,0,0.45)';
+
+new Chart(document.getElementById('pnlChart'), {
+  type: 'bar',
+  data: {
+    labels: ['SAC (RL)', 'FIXED', 'SKEW'],
+    datasets: [{
+      label: 'Mean PnL ($)',
+      data: [6635, 5033, 8988],
+      backgroundColor: ['#378ADD', '#EF9F27', '#97C459'],
+      borderColor: ['#185FA5', '#BA7517', '#639922'],
+      borderWidth: 1,
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' $' + ctx.raw.toLocaleString() } } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: tickColor, font: { size: 12 } } },
+      y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 }, callback: v => '$' + (v/1000).toFixed(0) + 'k' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('invChart'), {
+  type: 'bar',
+  data: {
+    labels: ['SAC', 'FIXED', 'SKEW'],
+    datasets: [{
+      label: 'Inventory range',
+      data: [7.9, 14.2, 12.1],
+      backgroundColor: ['#85B7EB', '#FAC775', '#C0DD97'],
+      borderColor: ['#185FA5', '#BA7517', '#639922'],
+      borderWidth: 1,
+      borderRadius: 4,
+      indexAxis: 'y'
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 } }, max: 18 },
+      y: { grid: { display: false }, ticks: { color: tickColor, font: { size: 12 } } }
+    }
+  }
+});
+
+const steps = [0,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000];
+new Chart(document.getElementById('rewardChart'), {
+  type: 'line',
+  data: {
+    labels: steps.map(s => s === 0 ? '0' : s/1000 + 'k'),
+    datasets: [
+      { label: 'No reward scaling', data: [0,18,24,31,28,35,32,34,33,35,36], borderColor: '#E24B4A', borderDash: [4,3], borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0.3 },
+      { label: 'With reward scaling', data: [0,5,8,14,22,35,48,57,63,68,72], borderColor: '#378ADD', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 10 }, maxTicksLimit: 6 } },
+      y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 10 } }, title: { display: true, text: 'policy quality (index)', color: tickColor, font: { size: 10 } } }
+    }
+  }
+});
+
+new Chart(document.getElementById('cvarLineChart'), {
+  type: 'line',
+  data: {
+    labels: ['Light', 'Medium', 'Strong'],
+    datasets: [
+      { label: 'SAC', data: [3180, 1194, 4593], borderColor: '#378ADD', borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#378ADD', fill: false, tension: 0.2 },
+      { label: 'FIXED', data: [-1354, 322, -2199], borderColor: '#EF9F27', borderDash: [4,3], borderWidth: 1.5, pointRadius: 4, pointBackgroundColor: '#EF9F27', fill: false, tension: 0.2 },
+      { label: 'SKEW', data: [2938, -3910, 969], borderColor: '#97C459', borderDash: [2,3], borderWidth: 1.5, pointRadius: 4, pointBackgroundColor: '#97C459', fill: false, tension: 0.2 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: tickColor, font: { size: 11 } } },
+      y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 10 }, callback: v => '$' + (v/1000).toFixed(1) + 'k' },
+        min: -4500, max: 5500 }
+    }
+  }
+});
+
+const toxData = {
+  light: { sac: 3180, fixed: -1354, skew: 2938, insight: 'Under light toxicity, SAC leads in both mean PnL and CVaR. Even FIXED suffers negative tail outcomes at just mild adverse selection.', insightClass: 'blue' },
+  med:   { sac: 1194, fixed: 322, skew: -3910, insight: 'SKEW collapses under medium toxicity — the directional signals it relies on become liabilities when flow is adversely selected.', insightClass: 'amber' },
+  strong:{ sac: 4593, fixed: -2199, skew: 969, insight: 'Under maximum stress, SAC is the only strategy with strongly positive CVaR (+$4,593). FIXED goes deeply negative (−$2,199).', insightClass: 'teal' }
+};
+
+function setTox(level) {
+  ['light','med','strong'].forEach(l => {
+    const btn = document.getElementById('btn-' + l);
+    btn.className = 'tox-btn';
+    if (l === level) btn.classList.add(level === 'light' ? 'active-light' : level === 'med' ? 'active-med' : 'active-strong');
+  });
+  const d = toxData[level];
+  const ins = document.getElementById('tox-insight');
+  ins.textContent = d.insight;
+  ins.className = 'insight-box ' + d.insightClass;
+  ins.style.marginBottom = '1rem';
+
+  const maxVal = 5500, minVal = -4500, range = maxVal - minVal;
+  const zeroPos = (-minVal / range) * 100;
+
+  function buildBar(val, color, label) {
+    const isNeg = val < 0;
+    const pct = (Math.abs(val) / range) * 100;
+    const fillColor = isNeg ? '#E24B4A' : color;
+    const bgColor = isNeg ? '#FCEBEB' : (color === '#378ADD' ? '#E6F1FB' : color === '#EF9F27' ? '#FAEEDA' : '#EAF3DE');
+    const textColor = isNeg ? '#A32D2D' : (color === '#378ADD' ? '#0C447C' : color === '#EF9F27' ? '#633806' : '#27500A');
+    const barStyle = isNeg
+      ? `position:absolute;right:${(100-zeroPos).toFixed(1)}%;width:${pct.toFixed(1)}%;height:100%;background:${fillColor};border-radius:4px 0 0 4px;`
+      : `position:absolute;left:${zeroPos.toFixed(1)}%;width:${pct.toFixed(1)}%;height:100%;background:${fillColor};border-radius:0 4px 4px 0;`;
+    const sign = val >= 0 ? '+' : '';
+    return `<div class="cvar-bar-wrap">
+      <div class="cvar-label">
+        <span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:2px;background:${color};display:inline-block;"></span>${label}</span>
+        <span style="background:${bgColor};color:${textColor};padding:2px 8px;border-radius:4px;font-weight:500;font-size:12px;">${sign}$${Math.abs(val).toLocaleString()}</span>
+      </div>
+      <div class="cvar-track">
+        <div class="cvar-zero" style="left:${zeroPos.toFixed(1)}%;"></div>
+        <div style="${barStyle}"></div>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('cvar-bars').innerHTML =
+    buildBar(d.sac, '#378ADD', 'SAC (RL)') +
+    buildBar(d.fixed, '#EF9F27', 'FIXED') +
+    buildBar(d.skew, '#97C459', 'SKEW');
+}
+
+setTox('light');
+</script>
+</body>
+</html>
